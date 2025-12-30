@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Feud: Player Edition</title>
+    <style>
+        :root {
+            --primary-blue: #00308F; /* India Blue */
+            --board-blue: #001f5c;
+            --accent-yellow: #FFD700;
+            --text-white: #ffffff;
+            --danger-red: #ff3333;
+        }
+
+        body {
+            background-color: var(--primary-blue);
+            font-family: 'Arial Black', sans-serif;
+            color: var(--text-white);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* --- SCOREBOARD --- */
+        .scoreboard {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            width: 100%;
+            background-color: rgba(0,0,0,0.4);
+            padding: 15px 0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .player-badge {
+            background: linear-gradient(180deg, #0052cc 0%, #001f5c 100%);
+            border: 2px solid var(--accent-yellow);
+            border-radius: 10px;
+            padding: 10px 20px;
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .player-name {
+            font-size: 14px;
+            color: #ddd;
+            margin-bottom: 5px;
+        }
+
+        .player-score {
+            font-size: 24px;
+            color: var(--accent-yellow);
+        }
+
+        /* --- HEADER --- */
+        .header {
+            width: 90%;
+            text-align: center;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .controls select {
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .strike-btn {
+            background-color: var(--danger-red);
+            color: white;
+            border: 2px solid white;
+            padding: 10px 20px;
+            font-size: 20px;
+            cursor: pointer;
+            border-radius: 50%;
+            font-weight: bold;
+            margin-left: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+        .strike-btn:hover { background-color: #cc0000; }
+
+        /* --- GAME BOARD --- */
+        #question-display {
+            font-size: 28px;
+            margin: 10px 20px 30px 20px;
+            text-align: center;
+            color: var(--accent-yellow);
+            text-shadow: 2px 2px 4px #000;
+            max-width: 80%;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            width: 90%;
+            max-width: 1000px;
+            perspective: 1000px;
+            margin-bottom: 50px;
+        }
+
+        .card {
+            background-color: transparent;
+            height: 80px;
+            cursor: pointer;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+        }
+
+        .card.revealed { transform: rotateX(180deg); }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            border: 2px solid var(--accent-yellow);
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+
+        .card-front {
+            background: linear-gradient(180deg, #0052cc 0%, #001f5c 100%);
+            justify-content: center;
+        }
+
+        .oval-number {
+            background-color: var(--board-blue);
+            color: var(--accent-yellow);
+            border: 2px solid var(--accent-yellow);
+            border-radius: 50%;
+            width: 40px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .card-back {
+            background: linear-gradient(180deg, #ffffff 0%, #e6e6e6 100%);
+            color: black;
+            transform: rotateX(180deg);
+            justify-content: space-between;
+            padding: 0 20px;
+            font-size: 20px;
+            text-transform: uppercase;
+        }
+
+        .points-box {
+            background-color: var(--primary-blue);
+            color: white;
+            padding: 5px 10px;
+            border: 2px solid black;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        /* --- MODAL (Player Selector) --- */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 50; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            background-color: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+            color: black;
+            box-shadow: 0 0 20px var(--accent-yellow);
+        }
+
+        .modal-title {
+            font-size: 22px;
+            margin-bottom: 20px;
+            color: var(--primary-blue);
+        }
+
+        .player-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .player-btn:hover { background-color: #0052cc; }
+
+        .no-points-btn {
+            background-color: #555;
+            margin-top: 15px;
+        }
+        .no-points-btn:hover { background-color: #777; }
+
+        /* --- STRIKE OVERLAY --- */
+        #strike-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .big-x {
+            color: red;
+            font-size: 300px;
+            font-family: sans-serif;
+            text-shadow: 0 0 20px red;
+            animation: popIn 0.3s ease-out;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); }
+            80% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            .scoreboard { flex-wrap: wrap; gap: 5px; }
+            .player-badge { min-width: 80px; padding: 5px; }
+            .player-name { font-size: 12px; }
+            .player-score { font-size: 18px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Scoreboard -->
+    <div class="scoreboard">
+        <div class="player-badge">
+            <div class="player-name">YASH</div>
+            <div class="player-score" id="score-yash">0</div>
+        </div>
+        <div class="player-badge">
+            <div class="player-name">GANDHALI</div>
+            <div class="player-score" id="score-gandhali">0</div>
+        </div>
+        <div class="player-badge">
+            <div class="player-name">HARSHAL</div>
+            <div class="player-score" id="score-harshal">0</div>
+        </div>
+        <div class="player-badge">
+            <div class="player-name">POOJA</div>
+            <div class="player-score" id="score-pooja">0</div>
+        </div>
+    </div>
+
+    <!-- Header & Controls -->
+    <div class="header">
+        <div style="font-size: 20px;">FAMILY FEUD</div>
+        <div class="controls">
+            <select id="question-selector" onchange="loadSelectedQuestion()">
+                <!-- Options populated by JS -->
+            </select>
+            <button class="strike-btn" onclick="showStrike()">X</button>
+        </div>
+    </div>
+
+    <div id="question-display">Loading...</div>
+
+    <div class="board" id="game-board">
+        <!-- Cards injected by JS -->
+    </div>
+
+    <!-- Player Selection Modal -->
+    <div id="player-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">Who answered correctly?</div>
+            <button class="player-btn" onclick="assignPoints('yash')">Yash</button>
+            <button class="player-btn" onclick="assignPoints('gandhali')">Gandhali</button>
+            <button class="player-btn" onclick="assignPoints('harshal')">Harshal</button>
+            <button class="player-btn" onclick="assignPoints('pooja')">Pooja</button>
+            <button class="player-btn no-points-btn" onclick="revealNoPoints()">Reveal Only (No Points)</button>
+        </div>
+    </div>
+
+    <!-- Strike Overlay -->
+    <div id="strike-overlay" onclick="this.style.display='none'">
+        <div class="big-x">X</div>
+    </div>
+
+    <script>
+        // --- GAME DATA ---
+        const gameData = [
+            {
+                q: "1. Most Popular IPL Team",
+                answers: [
+                    { text: "Chennai Super Kings", points: 32 },
+                    { text: "Mumbai Indians", points: 28 },
+                    { text: "RCB", points: 22 },
+                    { text: "KKR", points: 10 },
+                    { text: "Sunrisers Hyderabad", points: 4 },
+                    { text: "Rajasthan Royals", points: 4 }
+                ]
+            },
+            {
+                q: "2. Best Maharashtrian Sweet",
+                answers: [
+                    { text: "Puran Poli", points: 38 },
+                    { text: "Ukadiche Modak", points: 25 },
+                    { text: "Shrikhand / Amrakhand", points: 15 },
+                    { text: "Basundi", points: 10 },
+                    { text: "Kharvas", points: 6 },
+                    { text: "Naralachi Vadi", points: 4 },
+                    { text: "Dudhi Halwa", points: 2 }
+                ]
+            },
+            {
+                q: "3. Favorite Marathi Actor",
+                answers: [
+                    { text: "Ashok Saraf", points: 35 },
+                    { text: "Laxmikant Berde", points: 30 },
+                    { text: "Prashant Damle", points: 10 },
+                    { text: "Sachin Pilgaonkar", points: 8 },
+                    { text: "Mahesh Kothare", points: 6 },
+                    { text: "Dilip Prabhavalkar", points: 5 },
+                    { text: "Bhau Kadam", points: 4 },
+                    { text: "Subodh Bhave", points: 2 }
+                ]
+            },
+            {
+                q: "4. Best Hindi Playback Singer",
+                answers: [
+                    { text: "Kishore Kumar", points: 30 },
+                    { text: "Arijit Singh", points: 25 },
+                    { text: "Lata Mangeshkar", points: 20 },
+                    { text: "Sonu Nigam", points: 10 },
+                    { text: "Asha Bhosle", points: 8 },
+                    { text: "Shreya Ghoshal", points: 5 },
+                    { text: "Mohammed Rafi", points: 2 }
+                ]
+            },
+            {
+                q: "5. Best Mumbai Train Station",
+                answers: [
+                    { text: "CST / VT", points: 45 },
+                    { text: "Churchgate", points: 25 },
+                    { text: "Dadar", points: 12 },
+                    { text: "Bandra", points: 8 },
+                    { text: "Andheri", points: 5 },
+                    { text: "Thane", points: 5 }
+                ]
+            },
+            {
+                q: "6. Best Indian Politician",
+                answers: [
+                    { text: "Narendra Modi", points: 40 },
+                    { text: "Atal Bihari Vajpayee", points: 20 },
+                    { text: "Indira Gandhi", points: 15 },
+                    { text: "APJ Abdul Kalam", points: 10 },
+                    { text: "Jawaharlal Nehru", points: 8 },
+                    { text: "Balasaheb Thackeray", points: 5 },
+                    { text: "Sushma Swaraj", points: 2 }
+                ]
+            },
+            {
+                q: "7. Best Country (Excl India)",
+                answers: [
+                    { text: "USA / America", points: 35 },
+                    { text: "Switzerland", points: 25 },
+                    { text: "UK / London", points: 15 },
+                    { text: "UAE / Dubai", points: 10 },
+                    { text: "Japan", points: 8 },
+                    { text: "Australia", points: 5 },
+                    { text: "Canada", points: 2 }
+                ]
+            },
+            {
+                q: "8. Best City in India",
+                answers: [
+                    { text: "Mumbai", points: 40 },
+                    { text: "Bangalore", points: 20 },
+                    { text: "Pune", points: 15 },
+                    { text: "Delhi", points: 10 },
+                    { text: "Hyderabad", points: 5 },
+                    { text: "Chennai", points: 5 },
+                    { text: "Jaipur", points: 5 }
+                ]
+            },
+            {
+                q: "9. Best Season",
+                answers: [
+                    { text: "Winter", points: 60 },
+                    { text: "Monsoon", points: 25 },
+                    { text: "Spring", points: 10 },
+                    { text: "Summer", points: 5 }
+                ]
+            },
+            {
+                q: "10. Best Day of Week",
+                answers: [
+                    { text: "Sunday", points: 65 },
+                    { text: "Saturday", points: 25 },
+                    { text: "Friday", points: 8 },
+                    { text: "Wednesday", points: 2 }
+                ]
+            },
+            {
+                q: "11. Best Fruit",
+                answers: [
+                    { text: "Mango", points: 60 },
+                    { text: "Banana", points: 15 },
+                    { text: "Apple", points: 8 },
+                    { text: "Grapes", points: 5 },
+                    { text: "Orange", points: 5 },
+                    { text: "Watermelon", points: 4 },
+                    { text: "Custard Apple", points: 3 }
+                ]
+            },
+            {
+                q: "12. Best Namkeen w/ Tea",
+                answers: [
+                    { text: "Bhujia / Sev", points: 30 },
+                    { text: "Chivda", points: 25 },
+                    { text: "Chakli", points: 15 },
+                    { text: "Khari / Toast", points: 12 },
+                    { text: "Biscuits", points: 10 },
+                    { text: "Farsan", points: 5 },
+                    { text: "Gathiya", points: 3 }
+                ]
+            },
+            {
+                q: "13. Best Transport",
+                answers: [
+                    { text: "Train", points: 45 },
+                    { text: "Auto Rickshaw", points: 20 },
+                    { text: "Car", points: 15 },
+                    { text: "Two-Wheeler", points: 10 },
+                    { text: "Bus", points: 5 },
+                    { text: "Metro", points: 5 }
+                ]
+            },
+            {
+                q: "14. Best Marathi Serial",
+                answers: [
+                    { text: "Shriyut Gangadhar Tipre", points: 40 },
+                    { text: "Aabhalmaya", points: 20 },
+                    { text: "Dil Dosti Duniyadari", points: 15 },
+                    { text: "Vadalvaat", points: 10 },
+                    { text: "Gotya", points: 8 },
+                    { text: "Char Divas Sasuche", points: 5 },
+                    { text: "Prapanch", points: 2 }
+                ]
+            },
+            {
+                q: "15. Best Marathi Movie",
+                answers: [
+                    { text: "Ashi Hi Banwa Banwi", points: 50 },
+                    { text: "Sairat", points: 15 },
+                    { text: "Natsamrat", points: 12 },
+                    { text: "Maherchi Sadi", points: 10 },
+                    { text: "Duniyadari", points: 5 },
+                    { text: "Shwaas", points: 5 },
+                    { text: "Mulshi Pattern", points: 3 }
+                ]
+            },
+            {
+                q: "16. Best Indian Web Series",
+                answers: [
+                    { text: "Sacred Games", points: 40 },
+                    { text: "Mirzapur", points: 25 },
+                    { text: "The Family Man", points: 20 },
+                    { text: "Panchayat", points: 10 },
+                    { text: "Scam 1992", points: 5 }
+                ]
+            },
+            {
+                q: "17. Best Indian Rest. Muscat",
+                answers: [
+                    { text: "Mumtaz Mahal", points: 35 },
+                    { text: "Bukhara", points: 20 },
+                    { text: "Woodlands", points: 15 },
+                    { text: "Begum's", points: 12 },
+                    { text: "The Jungle", points: 10 },
+                    { text: "Farzi Café", points: 5 },
+                    { text: "Saravana Bhavan", points: 3 }
+                ]
+            },
+            {
+                q: "18. Best Ganpati Aarti",
+                answers: [
+                    { text: "Sukhakarta Dukhaharta", points: 60 },
+                    { text: "Shendur Lal Chadhayo", points: 20 },
+                    { text: "Ghalin Lotangan", points: 10 },
+                    { text: "Jai Ganesh Deva", points: 5 },
+                    { text: "Durge Durghat Bhari", points: 3 },
+                    { text: "Lavthavti Vikrala", points: 2 }
+                ]
+            },
+            {
+                q: "19. Best Festival",
+                answers: [
+                    { text: "Diwali", points: 45 },
+                    { text: "Ganesh Chaturthi", points: 35 },
+                    { text: "Holi", points: 10 },
+                    { text: "Navratri", points: 5 },
+                    { text: "Makar Sankranti", points: 3 },
+                    { text: "Gudi Padwa", points: 2 }
+                ]
+            }
+        ];
+
+        // --- GAME STATE ---
+        const playerScores = {
+            yash: 0,
+            gandhali: 0,
+            harshal: 0,
+            pooja: 0
+        };
+
+        // Temporary storage for card handling
+        let pendingCardElement = null;
+        let pendingPoints = 0;
+
+        // Initialize
+        const selector = document.getElementById('question-selector');
+        gameData.forEach((item, index) => {
+            let option = document.createElement("option");
+            option.value = index;
+            option.text = item.q;
+            selector.add(option);
+        });
+
+        loadSelectedQuestion();
+
+        // --- FUNCTIONS ---
+
+        function loadSelectedQuestion() {
+            const index = selector.value;
+            const data = gameData[index];
+            const board = document.getElementById('game-board');
+            const qDisplay = document.getElementById('question-display');
+            
+            // Reset Board UI only (Keep scores!)
+            board.innerHTML = "";
+            qDisplay.innerText = data.q;
+
+            // Create Cards
+            data.answers.forEach((ans, i) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                // Trigger Modal instead of direct reveal
+                card.onclick = () => openPlayerModal(card, ans.points);
+
+                const front = document.createElement('div');
+                front.className = 'card-face card-front';
+                front.innerHTML = `<div class="oval-number">${i + 1}</div>`;
+
+                const back = document.createElement('div');
+                back.className = 'card-face card-back';
+                back.innerHTML = `<span>${ans.text}</span> <span class="points-box">${ans.points}</span>`;
+
+                card.appendChild(front);
+                card.appendChild(back);
+                board.appendChild(card);
+            });
+            
+            // Fill empty slots for visuals
+            let emptySlots = 8 - data.answers.length;
+            if (emptySlots > 0) {
+                for(let j=0; j<emptySlots; j++) {
+                     const empty = document.createElement('div');
+                     board.appendChild(empty); 
+                }
+            }
+        }
+
+        // 1. Open Modal when card clicked
+        function openPlayerModal(cardElement, points) {
+            if (cardElement.classList.contains('revealed')) return; // Ignore if already open
+            
+            pendingCardElement = cardElement;
+            pendingPoints = points;
+            
+            document.getElementById('player-modal').style.display = 'flex';
+        }
+
+        // 2. Assign Points to specific player
+        function assignPoints(playerKey) {
+            // Update Score Data
+            playerScores[playerKey] += pendingPoints;
+
+            // Update UI Scoreboard
+            document.getElementById(`score-${playerKey}`).innerText = playerScores[playerKey];
+
+            // Reveal the card
+            if (pendingCardElement) {
+                pendingCardElement.classList.add('revealed');
+            }
+
+            // Close Modal
+            closeModal();
+        }
+
+        // 3. Reveal without giving points (e.g. if no one guessed it)
+        function revealNoPoints() {
+            if (pendingCardElement) {
+                pendingCardElement.classList.add('revealed');
+            }
+            closeModal();
+        }
+
+        function closeModal() {
+            document.getElementById('player-modal').style.display = 'none';
+            pendingCardElement = null;
+            pendingPoints = 0;
+        }
+
+        function showStrike() {
+            const overlay = document.getElementById('strike-overlay');
+            overlay.style.display = 'flex';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
